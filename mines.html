@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mines Game - AI Signal</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      /* Main grid container */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr); /* 5 columns */
+        grid-gap: 8px;
+        margin-top: 20px;
+        justify-content: center;
+        width: 100%;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* Styling for each cell */
+      .cell {
+        width: 50px;
+        height: 50px;
+        background-color: #2d3748;
+        color: yellow;
+        font-size: 24px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transform: scale(0.8);
+        transition: all 0.4s ease-in-out;
+      }
+
+      .cell.safe {
+        background-color: #1f2937;
+        box-shadow: 0 0 8px rgba(255, 255, 0, 0.6);
+      }
+
+      .cell.show {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .cell.mine {
+        background-color: #e53e3e;
+        box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+      }
+
+      /* Fade effect for text */
+      .fade-text {
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+      }
+
+      .fade-text.show {
+        opacity: 1;
+      }
+
+      /* Centering the main content */
+      .content-container {
+        padding: 20px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+      }
+
+      /* Ensuring buttons scale nicely */
+      .btn {
+        padding: 10px 20px;
+        font-size: 18px;
+        border-radius: 8px;
+      }
+
+      /* Mobile responsiveness */
+      @media (max-width: 600px) {
+        .grid {
+          grid-template-columns: repeat(4, 1fr); /* 4 columns on mobile */
+        }
+
+        .cell {
+          font-size: 18px;
+          width: 40px;
+          height: 40px;
+        }
+
+        .btn {
+          font-size: 16px;
+          padding: 8px 15px;
+        }
+      }
+
+      @media (max-width: 400px) {
+        .grid {
+          grid-template-columns: repeat(
+            3,
+            1fr
+          ); /* 3 columns on smaller screens */
+        }
+
+        .cell {
+          font-size: 16px;
+          width: 35px;
+          height: 35px;
+        }
+
+        .btn {
+          font-size: 14px;
+          padding: 6px 12px;
+        }
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-900 text-white font-sans min-h-screen flex items-center justify-center"
+  >
+    <div class="content-container">
+      <h1 id="gameTitle" class="text-3xl font-bold text-green-400 mb-2">
+        AI Signal: Mines Game
+      </h1>
+      <p id="description" class="text-gray-400 mb-4">
+        Click to get a new AI signal with predicted cells.
+      </p>
+
+      <!-- Language Selector -->
+      <select
+        id="languageSelect"
+        class="mb-4 bg-gray-700 text-white px-4 py-2 rounded-lg"
+      >
+        <option value="en">English</option>
+        <option value="ms">Malay (Malayalam)</option>
+      </select>
+
+      <button
+        id="startButton"
+        class="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-5 rounded-lg transition btn"
+      >
+        Get AI Signal
+      </button>
+      <div id="message" class="mt-4 text-green-300 text-lg fade-text">
+        AI is analyzing...
+      </div>
+      <div id="gameBoard" class="grid mt-6"></div>
+    </div>
+
+    <script>
+      const startButton = document.getElementById("startButton");
+      const gameBoard = document.getElementById("gameBoard");
+      const message = document.getElementById("message");
+      const languageSelect = document.getElementById("languageSelect");
+      const gameTitle = document.getElementById("gameTitle");
+      const description = document.getElementById("description");
+
+      const totalCells = 25;
+      const totalMines = 20; // 20 cells with mines
+      const totalSafe = 5; // 5 cells with stars
+
+      // Language Translations
+      const translations = {
+        en: {
+          title: "AI Signal: Mines Game",
+          description: "Click to get a new AI signal with predicted cells.",
+          startButton: "Get AI Signal",
+          analyzing: "AI is analyzing...",
+          signalReceived: "AI Signal received!",
+        },
+        ms: {
+          title: "AI Isyarat: Permainan Mines",
+          description:
+            "Klik untuk mendapatkan isyarat AI baru dengan sel yang diramalkan.",
+          startButton: "Dapatkan Isyarat AI",
+          analyzing: "AI sedang menganalisis...",
+          signalReceived: "Isyarat AI diterima!",
+        },
+      };
+
+      // Change language function
+      function changeLanguage(language) {
+        const translation = translations[language];
+
+        gameTitle.textContent = translation.title;
+        description.textContent = translation.description;
+        startButton.textContent = translation.startButton;
+        message.textContent = translation.analyzing;
+      }
+
+      function generateSignal() {
+        gameBoard.innerHTML = "";
+        message.textContent = "AI is analyzing...";
+        message.classList.add("show");
+
+        setTimeout(() => {
+          message.textContent = "AI Signal received!";
+          generateBoard();
+        }, 1800);
+      }
+
+      function generateBoard() {
+        const minedIndexes = new Set();
+        // Generate 5 cells with stars
+        const safeIndexes = [];
+        while (safeIndexes.length < totalSafe) {
+          const index = Math.floor(Math.random() * totalCells);
+          if (!minedIndexes.has(index) && !safeIndexes.includes(index)) {
+            safeIndexes.push(index);
+          }
+        }
+
+        // Generate mines for the remaining cells
+        while (minedIndexes.size < totalMines) {
+          const index = Math.floor(Math.random() * totalCells);
+          if (!safeIndexes.includes(index)) {
+            minedIndexes.add(index);
+          }
+        }
+
+        for (let i = 0; i < totalCells; i++) {
+          const cell = document.createElement("div");
+          cell.classList.add("cell");
+
+          if (safeIndexes.includes(i)) {
+            cell.classList.add("safe");
+            cell.innerHTML = "🌟"; // Star for safe cells
+          } else if (minedIndexes.has(i)) {
+            cell.classList.add("mine");
+            cell.innerHTML = "❌"; // Cross for mine cells
+          }
+
+          gameBoard.appendChild(cell);
+
+          // Animate appearance
+          setTimeout(() => {
+            cell.classList.add("show");
+          }, 100 + i * 50); // staggered animation
+        }
+      }
+
+      startButton.addEventListener("click", () => {
+        message.classList.remove("show");
+        generateSignal();
+      });
+
+      languageSelect.addEventListener("change", (event) => {
+        changeLanguage(event.target.value);
+      });
+
+      // Initial language setup
+      changeLanguage("en");
+    </script>
+  </body>
+</html>
