@@ -3,256 +3,422 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mines Game - AI Signal</title>
+    <title>Mines Signal</title>
     <link
-      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap"
       rel="stylesheet"
     />
     <style>
-      /* Main grid container */
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr); /* 5 columns */
-        grid-gap: 8px;
-        margin-top: 20px;
+      body {
+        font-family: "Montserrat", sans-serif;
+        background-color: #121212;
+        color: white;
+        text-align: center;
+        margin: 0;
+        padding: 20px;
+        min-height: 100vh;
+        display: flex;
         justify-content: center;
-        width: 100%;
-        max-width: 400px;
-        margin-left: auto;
-        margin-right: auto;
+        align-items: center;
       }
 
-      /* Styling for each cell */
+      .game-container {
+        max-width: 600px;
+        width: 100%;
+        margin: 0 auto;
+        background-color: #1e1e1e;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        transform: translateY(0);
+        transition: transform 0.3s ease;
+      }
+
+      .game-container:hover {
+        transform: translateY(-5px);
+      }
+
+      h1 {
+        color: #ffcc00;
+        margin-bottom: 25px;
+        font-weight: 600;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .board {
+        display: grid;
+        gap: 10px;
+        margin: 25px 0;
+        perspective: 1000px;
+        min-height: 60px;
+      }
+
       .cell {
-        width: 50px;
-        height: 50px;
-        background-color: #2d3748;
-        color: yellow;
-        font-size: 24px;
+        width: 100%;
+        aspect-ratio: 1;
+        background-color: #333;
         border-radius: 8px;
         display: flex;
-        align-items: center;
         justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        cursor: default;
+        user-select: none;
+        transform-style: preserve-3d;
+        transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         opacity: 0;
-        transform: scale(0.8);
-        transition: all 0.4s ease-in-out;
+        transform: scale(0.8) rotateY(180deg);
       }
 
-      .cell.safe {
-        background-color: #1f2937;
-        box-shadow: 0 0 8px rgba(255, 255, 0, 0.6);
-      }
-
-      .cell.show {
+      .cell.visible {
         opacity: 1;
-        transform: scale(1);
+        transform: scale(1) rotateY(0deg);
       }
 
       .cell.mine {
-        background-color: #e53e3e;
-        box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+        background-color: #ff4444;
+        animation: pulse 1.5s infinite alternate;
       }
 
-      /* Fade effect for text */
-      .fade-text {
+      .cell.gem {
+        background-color: #2a2a2a;
+        color: #00cc66;
+        animation: float 3s ease-in-out infinite;
+      }
+
+      .controls {
+        margin-top: 30px;
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+      }
+
+      .settings {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .setting-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      button {
+        background-color: #ffcc00;
+        color: #121212;
+        border: none;
+        padding: 14px 30px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 16px;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+        width: 200px;
+      }
+
+      button:hover {
+        background-color: #ffdd33;
+        transform: translateY(-3px);
+        box-shadow: 0 7px 14px rgba(0, 0, 0, 0.2);
+      }
+
+      button:active {
+        transform: translateY(1px);
+      }
+
+      button::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          45deg,
+          transparent 25%,
+          rgba(255, 255, 255, 0.1) 50%,
+          transparent 75%
+        );
+        background-size: 400% 400%;
         opacity: 0;
-        transition: opacity 0.5s ease-in-out;
+        transition: all 0.5s ease;
       }
 
-      .fade-text.show {
+      button:hover::after {
         opacity: 1;
+        animation: shine 1.5s infinite;
       }
 
-      /* Centering the main content */
-      .content-container {
-        padding: 20px;
-        max-width: 600px;
-        margin-left: auto;
-        margin-right: auto;
+      select,
+      input {
+        padding: 10px 20px;
+        border-radius: 8px;
+        background-color: #333;
+        color: white;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        appearance: none;
+        width: 200px;
         text-align: center;
       }
 
-      /* Ensuring buttons scale nicely */
-      .btn {
-        padding: 10px 20px;
-        font-size: 18px;
-        border-radius: 8px;
+      input {
+        cursor: text;
+        background-image: none !important;
       }
 
-      /* Mobile responsiveness */
-      @media (max-width: 600px) {
-        .grid {
-          grid-template-columns: repeat(4, 1fr); /* 4 columns on mobile */
-        }
+      input:invalid {
+        border: 2px solid #ff4444;
+      }
 
-        .cell {
-          font-size: 18px;
-          width: 40px;
-          height: 40px;
-        }
+      input:valid {
+        border: 2px solid #00cc66;
+      }
 
-        .btn {
-          font-size: 16px;
-          padding: 8px 15px;
+      select:hover,
+      input:hover {
+        background-color: #444;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #ddd;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .id-form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+        }
+        100% {
+          transform: scale(1.05);
         }
       }
 
-      @media (max-width: 400px) {
-        .grid {
-          grid-template-columns: repeat(
-            3,
-            1fr
-          ); /* 3 columns on smaller screens */
+      @keyframes float {
+        0% {
+          transform: translateY(0px);
         }
+        50% {
+          transform: translateY(-5px);
+        }
+        100% {
+          transform: translateY(0px);
+        }
+      }
 
-        .cell {
-          font-size: 16px;
-          width: 35px;
-          height: 35px;
+      @keyframes shine {
+        0% {
+          background-position: 100% 50%;
         }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
 
-        .btn {
-          font-size: 14px;
-          padding: 6px 12px;
-        }
+      .error-message {
+        color: #ff4444;
+        margin-top: 5px;
+        font-size: 14px;
+        height: 20px;
       }
     </style>
   </head>
-  <body
-    class="bg-gray-900 text-white font-sans min-h-screen flex items-center justify-center"
-  >
-    <div class="content-container">
-      <h1 id="gameTitle" class="text-3xl font-bold text-green-400 mb-2">
-        AI Signal: Mines Game
-      </h1>
-      <p id="description" class="text-gray-400 mb-4">
-        Click to get a new AI signal with predicted cells.
-      </p>
+  <body>
+    <div class="game-container">
+      <h1>AI Mines Predictor</h1>
 
-      <!-- Language Selector -->
-      <select
-        id="languageSelect"
-        class="mb-4 bg-gray-700 text-white px-4 py-2 rounded-lg"
-      >
-        <option value="en">English</option>
-        <option value="ms">Malay (Malayalam)</option>
-      </select>
-
-      <button
-        id="startButton"
-        class="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-5 rounded-lg transition btn"
-      >
-        Get AI Signal
-      </button>
-      <div id="message" class="mt-4 text-green-300 text-lg fade-text">
-        AI is analyzing...
+      <div class="id-form" id="id-form">
+        <div class="setting-group">
+          <label for="user-id">Enter YOUR 1XBET ID</label>
+          <input
+            type="text"
+            id="user-id"
+            pattern="\d{8,}"
+            inputmode="numeric"
+            placeholder="Your 1xBet ID"
+            required
+            title="Please enter at least 8 digits"
+          />
+          <div class="error-message" id="error-message"></div>
+        </div>
+        <button id="verify-btn">Verify ID</button>
       </div>
-      <div id="gameBoard" class="grid mt-6"></div>
+
+      <div id="game-content" class="hidden">
+        <div class="settings">
+          <div class="setting-group">
+            <label for="grid-size">Grid Size</label>
+            <select id="grid-size">
+              <option value="3">3×3</option>
+              <option value="4">4×4</option>
+              <option value="5" selected>5×5</option>
+              <option value="6">6×6</option>
+              <option value="7">7×7</option>
+            </select>
+          </div>
+
+          <div class="setting-group">
+            <label for="mines">Number of Mines</label>
+            <select id="mines">
+              <option value="1">1 Mine</option>
+              <option value="2">2 Mines</option>
+              <option value="3" selected>3 Mines</option>
+              <option value="4">4 Mines</option>
+              <option value="5">5 Mines</option>
+              <option value="6">6 Mines</option>
+              <option value="7">7 Mines</option>
+              <option value="10">10 Mines</option>
+              <option value="15">15 Mines</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="board" id="board"></div>
+
+        <div class="controls">
+          <button id="signal-btn" onclick="getSignal()">
+            <span>Get Signal</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <script>
-      const startButton = document.getElementById("startButton");
-      const gameBoard = document.getElementById("gameBoard");
-      const message = document.getElementById("message");
-      const languageSelect = document.getElementById("languageSelect");
-      const gameTitle = document.getElementById("gameTitle");
-      const description = document.getElementById("description");
+      // DOM elements
+      const idForm = document.getElementById("id-form");
+      const gameContent = document.getElementById("game-content");
+      const userIdInput = document.getElementById("user-id");
+      const verifyBtn = document.getElementById("verify-btn");
+      const errorMessage = document.getElementById("error-message");
+      const boardElement = document.getElementById("board");
+      const gridSizeSelect = document.getElementById("grid-size");
+      const minesSelect = document.getElementById("mines");
+      const signalButton = document.getElementById("signal-btn");
 
-      const totalCells = 25;
-      const totalMines = 20; // 20 cells with mines
-      const totalSafe = 5; // 5 cells with stars
-
-      // Language Translations
-      const translations = {
-        en: {
-          title: "AI Signal: Mines Game",
-          description: "Click to get a new AI signal with predicted cells.",
-          startButton: "Get AI Signal",
-          analyzing: "AI is analyzing...",
-          signalReceived: "AI Signal received!",
-        },
-        ms: {
-          title: "AI Isyarat: Permainan Mines",
-          description:
-            "Klik untuk mendapatkan isyarat AI baru dengan sel yang diramalkan.",
-          startButton: "Dapatkan Isyarat AI",
-          analyzing: "AI sedang menganalisis...",
-          signalReceived: "Isyarat AI diterima!",
-        },
+      // Game state
+      const gameState = {
+        gridSize: 5,
+        mineCount: 3,
+        board: [],
+        userId: null,
       };
 
-      // Change language function
-      function changeLanguage(language) {
-        const translation = translations[language];
+      // Initialize with ID form only
+      boardElement.innerHTML = "";
 
-        gameTitle.textContent = translation.title;
-        description.textContent = translation.description;
-        startButton.textContent = translation.startButton;
-        message.textContent = translation.analyzing;
-      }
+      // Verify ID button handler
+      verifyBtn.addEventListener("click", () => {
+        // Validate input
+        if (userIdInput.validity.valid) {
+          gameState.userId = userIdInput.value;
+          idForm.classList.add("hidden");
+          gameContent.classList.remove("hidden");
+          errorMessage.textContent = "";
+        } else {
+          if (userIdInput.value.length < 8) {
+            errorMessage.textContent = "ID must be at least 8 digits";
+          } else if (!/^\d+$/.test(userIdInput.value)) {
+            errorMessage.textContent = "ID must contain only numbers";
+          } else {
+            errorMessage.textContent = "Invalid ID format";
+          }
+        }
+      });
 
-      function generateSignal() {
-        gameBoard.innerHTML = "";
-        message.textContent = "AI is analyzing...";
-        message.classList.add("show");
+      // Force numeric input
+      userIdInput.addEventListener("input", function () {
+        this.value = this.value.replace(/\D/g, "");
+        errorMessage.textContent = "";
+      });
 
-        setTimeout(() => {
-          message.textContent = "AI Signal received!";
-          generateBoard();
-        }, 1800);
-      }
+      // Generate new signal (reveal all cells)
+      function getSignal() {
+        // Disable button during animation
+        signalButton.disabled = true;
+        signalButton.textContent = "Generating...";
 
-      function generateBoard() {
-        const minedIndexes = new Set();
-        // Generate 5 cells with stars
-        const safeIndexes = [];
-        while (safeIndexes.length < totalSafe) {
-          const index = Math.floor(Math.random() * totalCells);
-          if (!minedIndexes.has(index) && !safeIndexes.includes(index)) {
-            safeIndexes.push(index);
+        // Get selected settings
+        gameState.gridSize = parseInt(gridSizeSelect.value);
+        gameState.mineCount = parseInt(minesSelect.value);
+
+        // Validate mine count doesn't exceed grid capacity
+        const maxMines = Math.min(
+          gameState.gridSize * gameState.gridSize - 1,
+          15
+        );
+        gameState.mineCount = Math.min(gameState.mineCount, maxMines);
+
+        // Reset board
+        gameState.board = Array(gameState.gridSize * gameState.gridSize).fill(
+          "gem"
+        );
+
+        // Place mines randomly
+        let minesPlaced = 0;
+        while (minesPlaced < gameState.mineCount) {
+          const randomIndex = Math.floor(
+            Math.random() * gameState.board.length
+          );
+          if (gameState.board[randomIndex] !== "mine") {
+            gameState.board[randomIndex] = "mine";
+            minesPlaced++;
           }
         }
 
-        // Generate mines for the remaining cells
-        while (minedIndexes.size < totalMines) {
-          const index = Math.floor(Math.random() * totalCells);
-          if (!safeIndexes.includes(index)) {
-            minedIndexes.add(index);
-          }
-        }
+        // Prepare board element
+        boardElement.innerHTML = "";
+        boardElement.style.gridTemplateColumns = `repeat(${gameState.gridSize}, 1fr)`;
 
-        for (let i = 0; i < totalCells; i++) {
+        // Create cells
+        for (let i = 0; i < gameState.board.length; i++) {
           const cell = document.createElement("div");
-          cell.classList.add("cell");
+          cell.className = "cell";
 
-          if (safeIndexes.includes(i)) {
-            cell.classList.add("safe");
-            cell.innerHTML = "🌟"; // Star for safe cells
-          } else if (minedIndexes.has(i)) {
+          if (gameState.board[i] === "mine") {
             cell.classList.add("mine");
-            cell.innerHTML = "❌"; // Cross for mine cells
+            cell.textContent = "💣";
+          } else {
+            cell.classList.add("gem");
+            cell.textContent = "💎";
           }
 
-          gameBoard.appendChild(cell);
+          boardElement.appendChild(cell);
 
-          // Animate appearance
+          // Trigger animation with staggered delay
           setTimeout(() => {
-            cell.classList.add("show");
-          }, 100 + i * 50); // staggered animation
+            cell.classList.add("visible");
+          }, 50 * ((i % gameState.gridSize) + Math.floor(i / gameState.gridSize)));
         }
+
+        // Re-enable button
+        signalButton.disabled = false;
+        signalButton.textContent = "Get Signal";
       }
-
-      startButton.addEventListener("click", () => {
-        message.classList.remove("show");
-        generateSignal();
-      });
-
-      languageSelect.addEventListener("change", (event) => {
-        changeLanguage(event.target.value);
-      });
-
-      // Initial language setup
-      changeLanguage("en");
     </script>
   </body>
 </html>
